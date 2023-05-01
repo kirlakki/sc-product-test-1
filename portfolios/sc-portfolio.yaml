@@ -13,10 +13,6 @@ Parameters:
     Type: String
     Default: Workshop Studio
     Description: Enter the portfolio provider
-  EKSStackName:
-    Type: String
-    Default: sc-simple-eks
-    Description: Enter the EKS cluster service catalog stack name
 Resources:
 ################## PORTFOLIO #################
   ServiceCatalogPortfolio:
@@ -28,15 +24,6 @@ Resources:
       Tags: 
         - Key: Environment
           Value: Workshop Studio
-
-################## PRODUCT ASSOCIATIONS #################
-  EKSAssociation:
-    Type: AWS::ServiceCatalog::PortfolioProductAssociation
-    Properties: 
-      PortfolioId: !Ref ServiceCatalogPortfolio
-      ProductId: 
-        Fn::ImportValue:
-          !Sub "${EKSStackName}-ProductPA"
 
 ################## PERMISSIONS AND ROLES #################
   SCLaunchRole:
@@ -53,19 +40,6 @@ Resources:
       ManagedPolicyArns:
         - !Join ['', ['arn:', !Ref 'AWS::Partition', ':iam::aws:policy/AdministratorAccess']]
 
-################## LAUNCH ROLE CONSTRAINT #################
-  SCEKSLaunchRoleConst:
-    Type: AWS::ServiceCatalog::LaunchRoleConstraint
-    Properties:
-      Description: Service Catalog uses this role to launch the product
-      PortfolioId: !Ref ServiceCatalogPortfolio
-      ProductId:
-        Fn::ImportValue:
-          !Sub "${EKSStackName}-ProductPA"
-      RoleArn: !GetAtt SCLaunchRole.Arn
-    DependsOn:
-      - EKSAssociation
-
 ################## GROUP USER & ROLE ASSOCIATION #################
   TeamRoleAssociation:
     Type: AWS::ServiceCatalog::PortfolioPrincipalAssociation
@@ -74,3 +48,17 @@ Resources:
       PrincipalARN:
         !Join ['',['arn:aws:iam::',!Ref 'AWS::AccountId',':role/WSParticipantRole']]
       PrincipalType: IAM
+
+Outputs:
+  PortfolioId:
+    Description: Service Catalog Portfolio Id
+    Value: !Ref ServiceCatalogPortfolio
+    Export:
+      Name: 
+        'Fn::Sub': '${AWS::StackName}-PortfolioId'
+  LaunchRole:
+    Description: Service Catalog Launch Role
+    Value: !GetAtt SCLaunchRole.Arn
+    Export:
+      Name: 
+        'Fn::Sub': '${AWS::StackName}-LaunchRole'
